@@ -1,0 +1,504 @@
+---
+title: "MA304-Report: 2211539"
+author: "Temitope Ogungboyega"
+date: "2023-03-31"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+library(tidyverse)
+library(knitr)
+library(sf)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(plotly)
+library(RColorBrewer)
+library(readr)
+library(ggplot2)
+library(hrbrthemes)
+library(leaflet)
+library(ggmap)
+library(knitr)
+library(kableExtra)
+setwd("M:/MA 304")
+```
+
+```{=html}
+<style>
+body {
+  text-align: justify;
+}
+</style>
+```
+## 1. Introduction
+
+The topic of police use of force and its impact on society has been a subject of much debate and controversy in recent years. With incidents of police brutality and excessive force gaining widespread attention in the media, there is an urgent need for data-driven insights that can inform policy decisions and improve police-community relations.
+
+The Dallas policing dataset as otained from The Center for Policing Equity(CPE) provides a unique opportunity to analyze and understand police behavior in a specific geographical context. By examining the data from multiple angles, this report aims to uncover important insights about the Dallas police force that can inform future policies and practices.
+
+Some of the key questions that will be explored in this analysis include: Are certain demographics of officers or subjects more likely to be involved in use of force incidents? What types of force are most commonly used by the Dallas police force? Are there any geographic or temporal patterns in police behavior that can be identified?
+
+By providing a comprehensive overview of the Dallas policing dataset, this report aims to shed light on the complex dynamics of police use of force and promote greater transparency and accountability in law enforcement.
+
+
+## 2. Data cleaning and preprocessing
+
+Data cleaning, integration, transformation, and reduction are important steps in preparing the Dallas Police dataset for analysis. This report will outline the process of cleaning and preprocessing the dataset, with a focus on the following subtopics:
+
+1.  Checking for Missing Values
+2.  Checking for Duplicates
+3.  Checking Data Types
+4.  Removing Unnecessary Variables
+5.  Checking Data Integrity
+
+#### Check for missing values
+
+The first step in data cleaning is to check for missing data. The is.na() function in R can be used to detect missing values. To obtain the exact number of missing values in each column, the colSums() function is applied, resulting in a vector indicating the number of missing values in each column. Any columns with a non-zero value indicate missing data in that column. Missing values can then be imputed or removed, depending on the nature and extent of the missing data.
+
+```{r message=FALSE, include=FALSE}
+# load the Dallas policing dataset 
+dallas <- read_csv("dallas_police_data.csv")
+spec(dallas)
+colSums(is.na(dallas))
+
+```
+
+```{r include=FALSE, paged.print=TRUE}
+missing_values <- colSums(is.na(dallas))
+kable(missing_values, caption = "Number of missing values in each column", col.names = "Number of Rows with Missing Values")
+```
+
+#### Check for duplicates
+
+Duplicate data can skew analysis results and create inaccurate conclusions. To check for duplicates, the duplicated() function can be used. This function returns a logical vector indicating whether each element of a vector or data frame is duplicated or not. By applying this function to the relevant columns of the Dallas dataset, any incidents that have the same values for all selected columns can be identified and removed from the dataset.
+
+```{r include=FALSE}
+# Check for duplicates in dallas dataframe
+duplicated_rows <- duplicated(dallas)
+any(duplicated_rows)
+
+```
+
+#### Check data types
+
+Checking data types is an essential step in data cleaning and preprocessing. R provides functions such as str() and summary() that can be used to check the data types of each variable in the dataset. The data types can be converted to the appropriate format, such as numeric or factor, depending on the variable.
+
+```{r include=FALSE}
+str(dallas)
+summary(dallas)
+```
+
+
+#### Remove unnecessary variables
+
+Removing unnecessary variables is important in data reduction, as it reduces the complexity and size of the dataset. Variables that are not needed for analysis can be removed using the subset() function or by selecting the required variables using the select() function in the dplyr package.
+
+```{r include=FALSE}
+Dallas <- dallas[-1,c(1,2,5,6,8,9,10,11,13,14,15,17,18,19,23,32,33,34,35,36:43) ]
+
+Dallas$OFFICER_YEARS_ON_FORCE <- as.numeric(Dallas$OFFICER_YEARS_ON_FORCE)
+Dallas$LOCATION_LATITUDE <- as.numeric(Dallas$LOCATION_LATITUDE)
+Dallas$LOCATION_LONGITUDE <- as.numeric(Dallas$LOCATION_LONGITUDE)
+
+Dallas$OFFICER_GENDER <- as.factor(Dallas$OFFICER_GENDER)
+Dallas$OFFICER_INJURY <- as.factor(Dallas$OFFICER_INJURY)
+Dallas$OFFICER_HOSPITALIZATION <- as.factor(Dallas$OFFICER_HOSPITALIZATION)
+Dallas$SUBJECT_GENDER <- as.factor(Dallas$SUBJECT_GENDER)
+Dallas$SUBJECT_INJURY <- as.factor(Dallas$SUBJECT_INJURY)
+Dallas$SUBJECT_WAS_ARRESTED <- as.factor(Dallas$SUBJECT_WAS_ARRESTED)
+
+summary(Dallas)
+```
+
+
+#### Check for data integrity
+
+Data integrity refers to the accuracy and consistency of data throughout the analysis process. It is essential to ensure that the data is reliable and valid before analysis or visualization can be performed. Checking data integrity involves verifying that the data is complete, accurate, and consistent. It can be achieved by comparing the data in the dataset with external sources or checking for any anomalies or inconsistencies in the data.
+
+## 3. Data Analyses
+The safety and protection of citizens is of utmost importance for any city. This is why analyzing crime data is crucial to ensure that the necessary resources are allocated to high-risk areas to reduce incidents and improve public safety. In the case of Dallas, an analysis of crime data for the year 2016 revealed several key findings that can help the Dallas Police Department make informed decisions about where to allocate resources and when.
+
+
+```{r}
+# Create a leaflet map centered on Dallas
+map <- leaflet() %>%
+  addTiles() %>%
+  setView(lng = -96.7970, lat = 32.7767, zoom = 11)
+
+# Add markers to the map
+map_markers <- leaflet() %>%
+  addTiles() %>%
+  addMarkers(data = na.omit(Dallas[, c("LOCATION_LATITUDE", "LOCATION_LONGITUDE")]), 
+             clusterOptions = markerClusterOptions(),lng = ~LOCATION_LONGITUDE, lat = ~LOCATION_LATITUDE,
+             popup = paste("Latitude: ", Dallas$LOCATION_LATITUDE, "<br>",
+                           "Longitude: ", Dallas$LOCATION_LONGITUDE))
+
+
+# Add a caption to the map
+caption <- "<strong>Dallas Marker Map</strong><br><em>Locations of interest in Dallas, TX</em>"
+map_markers <- leaflet::addControl(map_markers, position = "bottomright", 
+                                   html = caption)
+
+# Display the map with markers and caption
+map_markers
+
+
+```
+
+The analysis of the data showed that the Central division had a significantly higher number of incidents compared to other divisions, with a total of 563 reported cases. This information is crucial in directing more resources towards the Central division to ensure the safety and protection of the residents in the area. The North Central and Northeast divisions also had high frequencies of incidents, with 319 and 341 respectively, which may also require additional resources to improve public safety. By analyzing the frequency of incidents by division, the Dallas Police Department can make informed decisions on where to allocate resources to maximize public safety and reduce incidents in high-risk areas.
+
+
+```{r}
+
+# create a data frame with division counts
+division_counts <- data.frame(table(Dallas$DIVISION))
+
+# create an interactive scatter plot with markers colored by frequency
+plot_ly(data = division_counts, 
+        y = ~Freq, 
+        x = ~Var1, 
+        type = "scatter", 
+        mode = "markers",
+        marker = list(size = 12, color = "#007bff"), # set marker size and color
+        hoverinfo = "text", 
+        text = ~paste("Division: ", Var1, "<br>Incidents: ", Freq)) %>%
+  
+  # customize plot layout and axes labels
+  layout(title = "Dallas Police Incidents by Division",
+         yaxis = list(title = "Number of Incidents", tickfont = list(size = 14)),
+         xaxis = list(title = "Division", tickfont = list(size = 12)),
+         
+         # adjust plot margins and colors
+         margin = list(l = 150, r = 50, b = 50, t = 80, pad = 4),
+         paper_bgcolor = "#f8f9fa",
+         plot_bgcolor = "#f8f9fa") %>%
+  
+  # set font size and color for title and hover labels
+  config(displayModeBar = FALSE,
+         staticPlot = FALSE,
+         displaylogo = FALSE,
+         title = list(text = "Dallas Police Incidents by Division",
+                      font = list(size = 24, color = "#343a40")),
+         hoverlabel = list(font = list(size = 16)))
+```
+
+
+
+Furthermore, a clear seasonal pattern was observed in the data, with incidents peaking in the third quarter of the year and decreasing towards the end of the year. Specifically, the months of March and February had the highest number of incidents, with approximately 264 and 254 incidents respectively. On the other hand, the lowest numbers of incidents were reported in December with only 100 incidents. This trend could be used to inform staffing decisions during peak months to ensure that more officers are on duty during these months when incidents are most likely to occur. By doing so, the Dallas Police Department can ensure that the city is well-protected and incidents are minimized during the peak months of the year.
+
+```{r}
+# Convert the INCIDENT_DATE column to a date format and extract the month
+time_data_date <- format(as.Date(Dallas$INCIDENT_DATE, "%m/%d/%Y","%m"))
+data_month <- month(time_data_date)
+# Create a data frame with the frequency of accidents per month
+monthly <- data.frame(table(data_month))
+
+# Create a line plot of the accident frequency by month using ggplot2
+P_1 <- ggplot(monthly, aes(x=data_month, y=Freq, group=1)) + 
+  geom_line(color = "#0072B2") + # Change the line color
+  geom_point(color = "#0072B2") + # Change the point color
+  xlab("Month") + 
+  ylab("Number of Accidents") + 
+  ggtitle("Incident Trend throughout 2016") + 
+  theme_light() + # Set the theme to "light"
+  theme(plot.title = element_text(size = 16, face = "bold"), # Customize the title
+        axis.text = element_text(size = 14), # Customize axis labels
+        axis.title = element_text(size = 14)) +
+  # Add layout customization here
+  theme(plot.background = element_rect(fill = "white"), # Set the background color to white
+        panel.background = element_rect(fill = "white"), # Set the panel background color to white
+        panel.grid.major = element_blank(), # Remove the major grid lines
+        panel.grid.minor = element_blank(), # Remove the minor grid lines
+        plot.title = element_text(hjust = 0.5), # Center the plot title
+        legend.position = "none", # Remove the legend
+        axis.line = element_line(color = "black"), # Add axis lines
+        axis.ticks = element_line(color = "black")) # Add axis ticks
+
+# Convert the plot to an interactive plot
+Fig_1 <- ggplotly(P_1, tooltip = c("x", "y")) 
+
+# Display the interactive plot
+Fig_1
+
+```
+
+
+In addition, further analysis of the data revealed that incidents showed a clear peak during the early evening hours, specifically between 5:00 PM and 8:00 PM. This trend suggests that more policing resources may be needed during these hours to better protect the city's residents. Additionally, a peak in incidents was also observed at 2:00 AM, indicating the need for additional police presence during this time as well.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Convert INCIDENT_TIME to a datetime object
+Dallas$INCIDENT_TIME <- as.POSIXct(Dallas$INCIDENT_TIME, format = "%I:%M:%S %p")
+
+# Extract the hour of the incident time
+Dallas$INCIDENT_HOUR <- hour(Dallas$INCIDENT_TIME)
+
+# Count the number of incidents per hour
+incidents_by_hour <- aggregate(Dallas$INCIDENT_HOUR, by = list(hour = Dallas$INCIDENT_HOUR), FUN = length)
+
+# Create a sequence of 24 hours
+hours <- seq(from = as.POSIXct("00:00:00", format = "%H:%M:%S"), 
+             to = as.POSIXct("23:59:59", format = "%H:%M:%S"), 
+             by = "1 hour")
+
+# Merge with the incidents by hour data frame to include any missing hours
+hourly_incidents <- merge(incidents_by_hour, data.frame(hour = hours), all.x = TRUE)
+
+# Create a new column with the date information needed for the x-axis
+hourly_incidents$datetime <- as.POSIXct(paste(hourly_incidents$hour, "00:00:00", sep = " "), format = "%Y-%m-%d %H:%M:%S")
+
+
+# Define the plot using ggplot2
+P_2 <- ggplot(hourly_incidents, aes(hour, x)) +
+  geom_line(color = "#0072B2", size = 1.0) +
+  geom_smooth(se = FALSE, color = "#E69F00") + 
+  labs(x = "Hour of the day", y = "Number of incidents") +
+  ggtitle("Number of incidents per hour of the day") +
+  theme(panel.background = element_rect(fill = "white"),
+        axis.line = element_line(size = 0.5, color = "black"),
+        axis.text = element_text(size = 12, color = "black"),
+        axis.title = element_text(size = 14, color = "black"),
+        plot.title = element_text(size = 16, face = "bold"),
+        plot.subtitle = element_text(size = 14),
+        panel.grid.major = element_line(color = "gray90"),
+        panel.grid.minor = element_line(color = "gray95")) +
+  scale_x_continuous(breaks = seq(0, 23, by = 1), limits = c(0, 23)) +
+  scale_y_continuous(limits = c(0, max(hourly_incidents$x) * 1.1)) +
+  theme_ipsum_rc(grid="Y")
+
+
+
+
+# Make the plot interactive with plotly
+
+ggplotly(P_2)
+```
+
+Interestingly, the data also showed a decrease in incidents during the morning hours, with the lowest number of incidents reported between 4:00 AM and 10:00 AM. This information could be used to adjust staffing levels throughout the day, with more resources directed towards the evening and early morning hours.
+
+By utilizing this information to make informed staffing decisions, the Dallas Police Department can better protect the city's residents during the times of the day when incidents are most likely to occur. This includes directing more resources towards high-risk areas such as the Central, North Central, and Northeast divisions, especially during the peak months of March and February. Additionally, adjusting staffing levels to account for the peak hours of 5:00 PM to 8:00 PM and 2:00 AM can help reduce incidents and improve public safety.
+
+In conclusion, the analysis of crime data for Dallas in 2016 revealed several key findings that can be used to improve public safety and protect the city's residents. By directing more resources to high-risk areas and adjusting staffing levels based on the seasonal and hourly trends observed in the data, the Dallas Police Department can better ensure the safety and protection of the city's residents
+
+Upon analyzing the data, several patterns emerged that highlight the need for further examination of potential biases and discrimination in policing practices.To ensure fair and equitable policing practices, the Dallas Police Department must examine potential biases and discrimination in policing practices. One way to do this is by analyzing the racial distribution of subjects and officers involved in incidents. 
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Create a new data frame containing the count of each race of subjects in the Dallas dataset
+Dallas_piechart <- Dallas %>% 
+  count(SUBJECT_RACE) %>%
+  filter(!(SUBJECT_RACE %in% c("NULL", "CitRace"))) %>% # Remove "NULL" and "CitRace" categories
+  mutate(percent = n/sum(n)) # Calculate the percentage of each race
+
+# Create an interactive pie chart using plot_ly and Customize the colors of the pie chart 
+Fig_pie <- plot_ly(Dallas_piechart, labels = ~SUBJECT_RACE, values = ~percent, type = 'pie',
+                   marker = list(colors = c('#FF4136', '#2ECC40', '#0074D9', '#FFDC00', '#FF851B', '#B10DC9'))) %>%
+           layout(title = "Distribution of Race of Subjects")
+
+# Display the interactive plot
+Fig_pie
+
+```
+
+
+The data showed that Black subjects were more likely to be involved in incidents than any other racial group, while white officers were more likely to handle cases involving Black subjects. This highlights the need for the department to examine potential biases and discrimination in policing practices and to take steps to address any disparities. This raises concerns about potential biases and discrimination in policing practices and underscores the need for further examination.
+
+```{r}
+# create a new dataframe with counts by officer and subject race
+race_counts <- Dallas %>%
+  group_by(OFFICER_RACE, SUBJECT_RACE) %>%
+  summarize(count = n()) %>%
+  ungroup()
+
+# create a heatmap
+
+ggplotly(ggplot(race_counts, aes(x = OFFICER_RACE, y = SUBJECT_RACE, fill = count)) +
+  geom_tile(color="white") +
+  scale_fill_gradientn(colors=c("green", "yellow", "red"), limits=c(0, 1000)) +
+  labs(title = "Incident Numbers by Officer Race and Subject Race",
+       x = "Officer Race", y = "Subject Race") +
+  theme_minimal())
+
+```
+
+
+In addition to examining potential biases, the data also revealed trends in age and years of service among officers involved in incidents. An interesting trend that emerged was a downward trend in the number of incidents with an increase in years of service among officers. This suggests that more experienced officers may have better skills and knowledge to handle situations that could lead to incidents. This information is incredibly useful for the Dallas Police Department to consider in ensuring that officers are trained and equipped to handle situations effectively.
+
+
+```{r}
+# Create a dataframe with years on force and incident frequency columns from Dallas data
+data <- data.frame(years_on_force = Dallas$OFFICER_YEARS_ON_FORCE, 
+                   incident_frequency = ave(rep(1, nrow(Dallas)), Dallas$OFFICER_YEARS_ON_FORCE, FUN = sum))
+
+# Create a scatter plot of incident frequency vs. years on force
+Fig_scat <- ggplot(data, aes(x = years_on_force, y = incident_frequency)) +
+  geom_point() +  # Add points to the plot
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  # Add a linear regression line to the plot
+  geom_ribbon(aes(ymin = predict(lm(incident_frequency ~ years_on_force), data),
+                  ymax = incident_frequency,
+                  fill = "red"), alpha = 0.1) +  # Add a shaded region indicating confidence interval of the regression line
+  labs(x = "Officer years on force", y = "Incident frequency") +  # Label the axes
+  ggtitle("Officer years on force vs. Incident frequency") +  # Add a title to the plot
+  theme_minimal() +  # Set the theme to minimal
+  theme(plot.title = element_text(hjust = 0.5))  # Center the plot title
+
+# Convert the plot to an interactive plot using plotly
+ggplotly(Fig_scat)
+
+
+```
+
+Furthermore, the interquartile range (IQR) can also provide insight into the distribution of officer years on force for different racial groups. For example, the IQR for American Indian officers is relatively large, suggesting a wider range of experience levels within this group. Conversely, the IQR for Hispanic officers is relatively small, indicating a more consistent level of experience within that group.
+
+Comparing the quartiles across different racial groups, it appears that American Indian officers have the most experienced workforce, with a median of 16 years on the force and a maximum of 26 years. On the other hand, Black officers have the least amount of experience, with a median of only 7 years and a maximum of 34 years.
+
+Overall, box plots provide a visual representation of the distribution of officer years on force for different racial groups, allowing for comparisons and identifying patterns or outliers in the data. However, it's important to note that box plots only show a summary of the data and may not provide a complete picture of the underlying distribution. Further analysis and context may be necessary to fully understand the behavior of officer years on force
+
+
+```{r}
+# Define color scheme for different officer races
+color_scheme <- c("Asian" = "#1f78b4",
+                  "Other" = "Orange",
+                  "Black" = "#b2df8a", 
+                  "Hispanic" = "purple", 
+                  "American Ind" = "#fb9a99", 
+                  "White" = "#e31a1c")
+
+# Create ggplot object
+Fig_box <- ggplot(Dallas, aes(x = OFFICER_RACE, y = OFFICER_YEARS_ON_FORCE, fill = OFFICER_RACE)) + # Set x and y variables, and fill color variable
+  geom_boxplot(alpha = 0.5) + # Add boxplot layer
+  labs(title = "Officer Years on Force by Race", x = NULL , y = "Years on Force") + # Add plot labels and title
+  facet_wrap(~OFFICER_RACE, ncol=2, scales = "free") + # Create facet plot by race
+  scale_fill_manual(values = color_scheme) + # Set color scheme for different races
+  theme_bw() + # Set black and white theme
+  theme(plot.title = element_text(size = 18, face = "bold"), # Set title font size and weight
+        axis.title = element_text(size = 14), # Set axis title font size
+        axis.text = element_text(size = 12), # Set axis label font size
+        legend.title = element_blank(), # Remove legend title
+        legend.text = element_text(size = 12)) # Set legend font size
+
+# Convert ggplot object to plotly object
+ggplotly(Fig_box)
+
+```
+The analysis also included a density plot showing the distribution of years of service by gender. The plot indicated that there may not be a significant difference in the number of years of service between male and female officers. However, further examination is still necessary to identify any potential gender biases or disparities because the gender ratio of Male to Female is very huge. This information is crucial to ensure that policing practices are fair and equitable for all residents of Dallas, regardless of their gender.
+
+```{r}
+# Create a density plot of the distribution of officer years on force by officer gender
+Fig_den <- ggplot(Dallas, aes(x = OFFICER_YEARS_ON_FORCE, fill= OFFICER_GENDER)) +   # Specify x-axis, fill color, and data
+  geom_density(alpha = 0.5, size = 1.5) +   # Add a density layer with transparency and size parameters
+  facet_wrap(~ OFFICER_GENDER, nrow = 1) +   # Facet the plot by officer gender and place them in a single row
+  labs(title = "Distribution of Officer Years on Force by Officer Gender",   # Specify the title, x-axis, and y-axis labels
+       x = "Officer Years on Force", y = "Density") +
+  scale_fill_manual(values = c("red", "green")) +   # Specify fill colors for the two genders
+  theme_minimal() +   # Set a minimal theme
+  theme(plot.title = element_text(hjust = 0.5),   # Center the plot title
+        legend.position = "bottom",   # Place the legend at the bottom of the plot
+        legend.title = element_text(size = 12),   # Set the legend title size
+        axis.title = element_text(size = 14),   # Set the axis label size
+        axis.text = element_text(size = 12))   # Set the axis tick label size
+
+ggplotly(Fig_den)   # Convert the ggplot object to a plotly object and display the interactive plot
+
+```
+
+
+```{r}
+# Create a bar plot of the count of Dallas police officers by race and gender
+Fig_bar2 <- ggplot(Dallas, aes(x = OFFICER_RACE, fill = OFFICER_GENDER)) +
+  geom_bar() +  # Add a bar layer to the plot
+  labs(title = "Distribution of Dallas Police Officers by Race and Gender", x = "Officer Race", y = "Count") +  # Set the plot title and axis labels
+  theme_bw() +  # Use a black and white theme
+  theme(legend.position = "top")  # Move the legend to the top of the plot
+
+# Convert ggplot object to plotly object
+ggplotly(Fig_bar2)
+
+```
+.
+
+The analysis of the data suggests that there may be disparities in policing practices based on the race and gender of the subjects involved in incidents. The data indicates that Black subjects were involved in a significantly higher number of incidents than subjects of other races, and were more likely to be injured. Similarly, Hispanic subjects were also involved in a significant number of incidents.
+
+```{r message=FALSE, warning=FALSE}
+# Create the two-way table
+my_table <- table(Dallas$OFFICER_INJURY, 
+                  Dallas$SUBJECT_RACE, 
+                  Dallas$SUBJECT_INJURY)
+
+# Convert the table to a data frame
+my_df <- as.data.frame(ftable(my_table))
+
+# Rename the columns of the data frame
+colnames(my_df) <- c("Subject Injury", "Subject Race", "Officer Injury", "Number")
+
+# Format the table using kableExtra
+Table_1<- kable(my_df, "markdown", booktabs = TRUE, align = "c") %>%
+  kable_styling(latex_options = "striped", font_size = 12) %>%
+  row_spec(0, bold = TRUE) %>% # Bold the first row (headers)
+  column_spec(0, bold = TRUE, border_right = TRUE) %>% # Bold the first column (row labels) and add a border to the right
+  collapse_rows(columns = 1, valign = "middle") # Collapse rows with the same value in the first column and align them in the middle
+
+# display the table
+Table_1
+
+
+
+```
+
+It is important to note that the data alone does not provide enough information to determine the cause of these disparities. Further analysis would be needed to determine if they are due to bias or discrimination in policing practices. Nonetheless, these findings underscore the need for the Dallas Police Department to examine their policing practices to ensure that all residents of Dallas are treated fairly and equitably.
+
+
+Furthermore, the data also indicates that male officers were more likely to be injured than female officers, which could be attributed to various factors such as the nature of the incidents or the tactics used by the officers. It is important for the department to evaluate these factors to ensure the safety of all officers.
+
+
+```{r}
+# Subset the data to only include columns of interest
+subset_data <- Dallas[, c("OFFICER_GENDER", "OFFICER_INJURY", "OFFICER_HOSPITALIZATION")]
+
+# Create the bar plot with dodged bars and faceted by OFFICER_HOSPITALIZATION
+Fig_bar3 <- ggplot(subset_data, aes(x = OFFICER_INJURY, fill = OFFICER_GENDER)) +
+  geom_bar(position = "dodge") +
+  facet_grid(OFFICER_HOSPITALIZATION ~ .) +
+  
+  # Add plot title and axis labels
+  labs(title = "Faceted Plot of Officer Injury by Gender and Hospitalization",
+       x = "Officer injury", y = "Count", fill = "Gender") +
+  
+  # Use a classic theme
+  theme_classic()
+
+# Convert ggplot object to plotly object and adjust legend position
+ggplotly(Fig_bar3) %>%
+  layout(legend = list(orientation = "h", x = 0.2, y = -0.2))
+
+
+```
+
+Overall, this highlights the need for the Dallas Police Department to examine potential biases and discrimination in policing practices and to take steps to address any disparities. This could include implementing bias training for officers, increasing diversity within the department, and adopting community policing strategies. By doing so, the department can work towards ensuring that all residents of Dallas are treated fairly and equitably.
+Overall, the analysis of the data underscores the need for the Dallas Police Department to examine potential biases and discrimination in policing practices. By taking steps to address any disparities, the department can ensure that all residents of Dallas are treated fairly and equitably. 
+
+
+The trends in age and years of service among officers also provide valuable insights for the department to consider when developing training and education programs for its officers. Ultimately, by analyzing the data and taking steps to address potential biases and disparities, the Dallas Police Department can work towards providing the best possible protection to the city's residents
+
+
+
+
+### 4.3 Recommendations and conclusion
+
+The data analysis presented in the report has provided significant insights into police interactions with different racial groups in Dallas. The report indicates that there are disparities in these interactions, and this calls for urgent action to address the issue. One way to achieve this is to invest in the professional development and training of police officers. This can help to promote better policing practices, improve police-community relations, and ensure equitable treatment of all individuals involved in incidents.
+
+To achieve this goal, the report recommends providing officers with training on unconscious bias and cultural sensitivity. Such training can help officers to recognize their biases and understand how they can impact their interactions with different individuals. Additionally, it is crucial to monitor incidents involving potential biases or disparities regularly and implement policies to ensure fair treatment of all individuals involved.
+
+The report also highlights the need for greater accountability and transparency in policing. This can be achieved through the implementation of measures such as body-worn cameras and community oversight boards. Such measures can help to promote trust between the police and the community, while also providing valuable evidence in cases of alleged misconduct.
+
+The report further recommends studying trends in incidents to help with staffing and allocation of resources. This can help to identify areas of high incidence and allocate resources accordingly to improve response times and ensure better outcomes for communities.
+
+In conclusion, the data analysis presented in the report provides a valuable insight into the Dallas police dataset and its implications for future policy decisions and practices. The recommendations presented in the report highlight the need for a more proactive and inclusive approach to policing, one that prioritizes fairness, transparency, and accountability. By implementing these recommendations, we can work towards building a safer and more just society for all.
